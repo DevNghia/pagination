@@ -1,139 +1,159 @@
 <?php
 
-class Pagination
+class paginationArray
 {
-    /**
-     * Biến config chứa tất cả các cấu hình
-     *
-     * @var array
-     */
-    private $config = [
-        'total' => 0, // tổng số mẩu tin
-        'limit' => 0, // số mẩu tin trên một trang
-        'full' => true, // true nếu hiện full số page, flase nếu không muốn hiện false
-        'querystring' => 'page' // GET id nhận page
-    ];
 
     /**
-     * khởi tạo
-     *
-     * @param array $config
+     * Properties array
+     * @var array   
+     * @access private 
      */
-    public function __construct($config = [])
+    private $_properties = array();
+
+    /**
+     * Default configurations
+     * @var array  
+     * @access public 
+     */
+    public $_defaults = array(
+        'page' => 1,
+        'record_per_page' => 10,
+        'param'
+    );
+
+    /**
+     * Constructor
+     * 
+     * @param array $array   Array of results to be paginated
+     * @param int   $current_page The current page interger that should used
+     * @param int   $record_per_page The amount of items that should be show per page
+     * @return void    
+     * @access public  
+     */
+    public function __construct($array, $current_page = null, $record_per_page = null, $params = null)
     {
-        // kiểm tra xem trong config có limit, total đủ điều kiện không
-        if (isset($config['limit']) && $config['limit'] < 0 || isset($config['total']) && $config['total'] < 0) {
-            // nếu không thì dừng chương trình và hiển thị thông báo.
-            die('limit và total không được nhỏ hơn 0');
-        }
-        // Kiểm tra xem config có querystring không
-        if (!isset($config['querystring'])) {
-            //nếu không để mặc định là page
-            $config['querystring'] = 'page';
-        }
-        $this->config = $config;
+        $this->array   = $array;
+        $this->current_page = ($current_page == null ? $this->defaults['page'] : $current_page);
+        $this->record_per_page = ($record_per_page == null ? $this->defaults['record_per_page'] : $record_per_page);
+        $this->params     = $params;
     }
 
     /**
-     * Lấy ra tổng số trang
-     *
-     * @return int
+     * @param string 
+     * @param string 
+     * @return void    
+     * @access public  
      */
-    private function gettotalPage()
+    public function __set($name, $value)
     {
-        //lấy ra tổng số trang
-        return ceil($this->config['total'] / $this->config['limit']);
+        $this->_properties[$name] = $value;
     }
 
     /**
-     * Lấy ra trang hiện tại
-     *
-     * @return int
+     * @param string
+     * @return mixed
+     * @access public  
      */
-    private function getCurrentPage()
+    public function __get($name)
     {
-        // kiểm tra tồn tại GET querystring và có >=1 không
-        if (isset($_GET[$this->config['querystring']]) && (int)$_GET[$this->config['querystring']] >= 1) {
-            // Nếu có kiểm tra tiếp xem nó có lớn hơn tổn số trang không.
-            if ((int)$_GET[$this->config['querystring']] > $this->gettotalPage()) {
-                // nếu lớn hơn thì trả về tổng số page
-                return (int)$this->gettotalPage();
-            } else {
-                // còn không thì trả về số trang
-                return (int)$_GET[$this->config['querystring']];
+        if (array_key_exists($name, $this->_properties)) {
+            return $this->_properties[$name];
+        }
+        return false;
+    }
+
+    /**
+     * @param boolean 
+     * @return void    
+     * @access public  
+     */
+    public function setShowFirstAndLast($showFirstAndLast)
+    {
+        $this->_showFirstAndLast = $showFirstAndLast;
+    }
+
+    /**
+     * @param string 
+     * @return void    
+     * @access public  
+     */
+    public function setMainSeperator($mainSeperator)
+    {
+        $this->mainSeperator = $mainSeperator;
+    }
+
+    /**
+     * @return array 
+     * @access public 
+     */
+    public function getResults()
+    {
+        if (empty($this->current_page) !== false) {
+            $this->page = $this->current_page;
+        } else {
+            $this->page = 1;
+        }
+        $this->length = count($this->array);
+        $this->pages = ceil($this->length / $this->record_per_page);
+        $this->start = ceil(($this->page - 1) * $this->record_per_page);
+        return array_slice($this->array, $this->start, $this->record_per_page);
+    }
+    /**
+     * @return buider string query
+     * @access public 
+     */
+    public function buildQuery()
+    {
+        $qs = '';
+        if (!empty($_SERVER['QUERY_STRING'])) {
+            $parts = explode("&", $_SERVER['QUERY_STRING']);
+            $query_array = array();
+            foreach ($parts as $val) {
+                if (stristr($val, 'page') == false) {
+                    array_push($query_array, $val);
+                }
             }
-        } else {
-            // nếu không có querystring thì nhận mặc định là 1
-            return 1;
+            if (count($query_array) != 0) {
+                $qs = "&" . implode("&", $query_array);
+            }
         }
+        return $qs;
     }
-
     /**
-     * lấy ra trang phía trước
-     *
-     * @return string
+     * @param array 
+     * @return mixed  
+     * @access public 
      */
-    private function getPrePage()
+    public function getLinks($link)
     {
-        // nếu trang hiện tại bằng 1 thì trả về null
-        if ($this->getCurrentPage() === 1) {
-            return;
-        } else {
-            // còn không thì trả về html code
-            return '<li><a href="' . $_SERVER['PHP_SELF'] . '?' . $this->config['querystring'] . '=' . ($this->getCurrentPage() - 1) . '" >Pre</a></li>';
-        }
-    }
-
-    /**
-     * Lấy ra trang phía sau
-     *
-     * @return string
-     */
-    private function getNextPage()
-    {
-        // nếu trang hiện tại lơn hơn = totalpage thì trả về rỗng
-        if ($this->getCurrentPage() >= $this->gettotalPage()) {
-            return;
-        } else {
-            // còn không thì trả về HTML code
-            return '<li><a href="' . $_SERVER['PHP_SELF'] . '?' . $this->config['querystring'] . '=' . ($this->getCurrentPage() + 1) . '" >Next</a></li>';
-        }
-    }
-
-    /**
-     * Hiển thị html code của page
-     *
-     * @return string
-     */
-    public function getPagination()
-    {
-        // tạo biến data rỗng
-        $data = '';
-        // kiểm tra xem người dùng có cần full page không.
-        if (isset($this->config['full']) && $this->config['full'] === false) {
-            // nếu không thì
-            $data .= ($this->getCurrentPage() - 3) > 1 ? '<li>...</li>' : '';
-
-            for ($i = ($this->getCurrentPage() - 3) > 0 ? ($this->getCurrentPage() - 3) : 1; $i <= (($this->getCurrentPage() + 3) > $this->gettotalPage() ? $this->gettotalPage() : ($this->getCurrentPage() + 3)); $i++) {
-                if ($i === $this->getCurrentPage()) {
-                    $data .= '<li class="active" ><a href="#" >' . $i . '</a></li>';
+        $plinks = array();
+        $links = array();
+        $slinks = array();
+        $queryUrl = $this->buildQuery();
+        if (($this->pages) > 1) {
+            if ($this->page != 1) {
+                if ($this->_showFirstAndLast) {
+                    $plinks[] = ' <a rel="nofollow" href="' . $link . '/?page=1' . $queryUrl . '">&laquo;&laquo;</a> ';
+                }
+                $plinks[] = ' <a rel="nofollow" href="' . $link . '/?page=' . ($this->page - 1) . $queryUrl . '" class="prev">&laquo;</a> ';
+            }
+            for ($j = 1; $j < ($this->pages + 1); $j++) {
+                if ($this->page == $j) {
+                    $links[] = ' <a rel="nofollow" class="current">' . $j . '</a> ';
                 } else {
-                    $data .= '<li><a href="' . $_SERVER['PHP_SELF'] . '?' . $this->config['querystring'] . '=' . $i . '" >' . $i . '</a></li>';
+                    $links[] = ' <a rel="nofollow" href="' . $link . '/?page=' . $j . $queryUrl . '">' . $j . '</a> ';
                 }
             }
 
-            $data .= ($this->getCurrentPage() + 3) < $this->gettotalPage() ? '<li>...</li>' : '';
-        } else {
-            // nếu có thì
-            for ($i = 1; $i <= $this->gettotalPage(); $i++) {
-                if ($i === $this->getCurrentPage()) {
-                    $data .= '<li class="active" ><a href="#" >' . $i . '</a></li>';
-                } else {
-                    $data .= '<li><a href="' . $_SERVER['PHP_SELF'] . '?' . $this->config['querystring'] . '=' . $i . '" >' . $i . '</a></li>';
+            if ($this->page < $this->pages) {
+                $slinks[] = ' <a rel="nofollow" href="' . $link . '/?page=' . ($this->page + 1) . $queryUrl . '" class="next">&raquo;</a> ';
+                if ($this->_showFirstAndLast) {
+                    $slinks[] = ' <a rel="nofollow" href="' . $link . '?page=' . ($this->pages) . $queryUrl . '">&raquo;&raquo; </a> ';
                 }
             }
-        }
 
-        return '<ul>' . $this->getPrePage() . $data . $this->getNextPage() . '</ul>';
+            return implode(' ', $plinks) . implode($this->mainSeperator, $links) . implode(' ', $slinks);
+        }
+        return;
     }
 }

@@ -1,4 +1,3 @@
-<?php require_once 'pagination.php'; ?>
 <!DOCTYPE html>
 <html>
 
@@ -7,56 +6,64 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>page</title>
 </head>
-<style type="text/css" media="screen">
-    ul {
-        list-style: none;
-    }
 
-    ul:after {
-        clear: both;
-    }
-
-    ul li {
-        background: #dddddd;
-        width: 35px;
-        height: 30px;
-        line-height: 30px;
-        float: left;
-        text-align: center;
-        margin-right: 1px;
-    }
-
-    a {
-        text-decoration: none;
-    }
-
-    ul li.active {
-        color: white;
-        background: blue;
-    }
-
-    .active a {
-        color: white;
-    }
-</style>
 
 <body>
-    <ul>
-        <?php
-        for ($i = 0; $i <= 100; $i++) {
-        }
-        ?>
-    </ul>
     <?php
-    $config = [
-        'total' => 50,
-        'limit' => 5,
-        'full' => true,
-        'querystring' => 'trang'
-    ];
-    $page = new Pagination($config);
-    echo $page->getPagination();
+    $data = array();
+    $data[] = 'Hồng Nhung';
+    $data[] = 'Bạch Hiếu';
+    $data[] = 'Đào Tuấn';
+    $data[] = 'Đinh Hoàn My';
+    $data[] = 'Đoàn Đức Hải';
+    $data[] = 'Đoàn Huy Hoàng';
+    $data[] = 'Đỗ Minh Tú';
+    $data[] = 'Đức Tiến';
+    $data[] = 'Hồ Thái';
+    $data[] = 'Huyền Trang';
+    $data[] = 'Lê Minh Hiếu';
+    $data[] = 'Lê Văn Anh';
+    $data[] = 'Nguyenbahao';
+    $data[] = 'Phạm Đức Tùng';
+    $data[] = 'Phước';
+    $data[] = 'Thành Công';
+    $data[] = 'Trần Đình Phúc';
+    $data[] = 'Trần Thị Hương Ly';
+    $data[] = 'Nguyễn Chí Nghĩa';
+    #
+    require_once('pagination.php');
+    $record_per_page = 5;
+    $current_page = isset($_GET['page']) && intval($_GET['page']) ? intval($_GET['page']) : 1;
+    $link = '/demo/php-pagination-array';
+
+    // Khởi tạo đối tượng
+    $pagination = new paginationArray($data, $current_page, $record_per_page, array('a' => 1));
+    // Set Prev và Last
+    $pagination->setShowFirstAndLast(TRUE);
+    $lstItems = $pagination->getResults();
+    $pageHTML = $pagination->getLinks($link);
     ?>
+
+    <table class="tbl-grid" cellpadding="0" cellspacing="0" awidth="100%">
+        <thead>
+            <tr>
+                <td align="center" class="gridheader">STT</td>
+                <td class="gridheader">Tiêu đề</td>
+            </tr>
+        </thead>
+        <tbody>
+            <?php for ($i = 0; $i < count($lstItems); $i++) { ?>
+                <tr>
+                    <td align="center"><?php echo $i; ?></td>
+                    <td><?php echo $lstItems[$i]; ?></td>
+                </tr>
+            <?php } ?>
+        </tbody>
+    </table>
+    <div class="pagination">
+        <?php echo $pageHTML; ?>
+    </div>
+
 </body>
 
 </html>
